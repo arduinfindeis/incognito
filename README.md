@@ -16,4 +16,4 @@ pip install numpy opencv-python
 ```
 
 ## License
-MIT License. Find it [here](https://github.com/arduinfindeis/incognito/blob/master/LICENSE)
+MIT License. Find it [here](https://github.com/arduinfindeis/incognito/blob/master/LICENSE).
