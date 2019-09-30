@@ -2,6 +2,8 @@ from __future__ import division
 import cv2
 import numpy as np
 import config
+from faced import FaceDetector
+import timeit
 
 # Setting some variables with config.py input
 x_offset = y_offset = config.small_subframe_offset
@@ -24,7 +26,7 @@ def haar_cascade_classifier(frame):
 
 
 # deep neural network classifier
-def dnn_classifier(frame):
+def dnn_classifier(frame, net):
     frame_small = frame[
         detection_area_margin:frame.shape[0]-detection_area_margin,
         detection_area_margin_x:frame.shape[1]-detection_area_margin_x]
@@ -33,9 +35,6 @@ def dnn_classifier(frame):
     blob = cv2.dnn.blobFromImage(cv2.resize(frame_small, (300, 300)), 1.0,
                                  (300, 300), (104.0, 177.0, 123.0))
 
-    net = cv2.dnn.readNetFromCaffe('models/deploy.prototxt.txt',
-                                   'models/res10_300x300_ssd_iter_140000.'
-                                   'caffemodel')
 
     net.setInput(blob)
     detections = net.forward()
@@ -46,7 +45,7 @@ def dnn_classifier(frame):
     for i in num_faces:
         confidence = detections[0, 0, i, 2]
 
-        if confidence < 0.7:
+        if confidence < config.thresh:
             continue
 
         box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
@@ -55,6 +54,30 @@ def dnn_classifier(frame):
         faces.append([startX, startY, endX-startX, endY-startY])
 
     return faces, frame_small
+
+
+def yolo_cpu_classifier(frame):
+
+    face_detector = FaceDetector()
+    frame_small = rescale_frame(frame)
+
+    rgb_frame = cv2.cvtColor(frame_small.copy(), cv2.COLOR_BGR2RGB)
+
+    # Receives RGB numpy image (HxWxC) and
+    # returns (x_center, y_center, width, height, prob) tuples.
+    detections = face_detector.predict(rgb_frame, config.thresh)
+
+    faces = [(int(d[0]-d[2]/2),int(d[1]-d[3]/2), d[2], d[3]) for d in detections]
+    print(faces)
+
+    return faces, frame_small
+
+
+def rescale_frame(frame):
+    frame_small = frame[
+        detection_area_margin:frame.shape[0]-detection_area_margin,
+        detection_area_margin_x:frame.shape[1]-detection_area_margin_x]
+    return frame_small
 
 
 def initialize_canvas(frame):
@@ -83,12 +106,14 @@ def create_window(canvas, faces, fullscreen):
 
 
 # the main drawing function
-def draw_canvas(frame, canvas_x, canvas_y, fullscreen):
+def draw_canvas(frame, canvas_x, canvas_y, fullscreen, net):
 
     if(config.classifier == "haar"):
         faces, frame_small = haar_cascade_classifier(frame)
     elif(config.classifier == "dnn"):
-        faces, frame_small = dnn_classifier(frame)
+        faces, frame_small = dnn_classifier(frame, net)
+    elif(config.classifier == "yolo_cpu"):
+        faces, frame_small = yolo_cpu_classifier(frame)
 
     canvas = initialize_canvas(frame)
 
@@ -105,7 +130,7 @@ def draw_canvas(frame, canvas_x, canvas_y, fullscreen):
         center_y = int(np.floor(y + float(h)/2))
         # drawing the ellipse onto the image
         cv2.ellipse(canvas, (center_x, center_y),
-                    (int(w * 0.7*config.ellipse_size),
+                    (int(w * 1.2 * config.ellipse_size),
                     int(h*config.ellipse_size)),
                     0, 0, 360, (0, 0, 0), -1)
 

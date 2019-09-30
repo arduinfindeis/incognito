@@ -3,10 +3,10 @@ import numpy as np
 
 
 # Webcam number
-webcam_num = 0  # system default usually is 0
+webcam_num = 1  # system default usually is 0
 
-# Classifier type. Options: "dnn"/"haar"
-classifier = "dnn"   # "dnn"
+# Classifier type. Options: "dnn"/"haar"/"yolo_cpu"
+classifier = "dnn" # "haar"    # "yolo_cpu"   # "dnn"
 # Algorithm resolution
 image_ratio = 16./10.
 
@@ -26,11 +26,14 @@ intensity = 255  # out of 256
 canvas_color = (intensity, intensity, intensity)
 
 # Canvas window type
-fullscreen = False
+fullscreen = True
 
 # Size of ellipses covering faces
-ellipse_size = 1.7
+ellipse_size = 1.3
 
 # Small subframe in the upper-left corner of the videostream
-subframe = False
+subframe = True
 small_subframe_offset = 20
+
+# Threshhold for detection with DNN
+thresh = 0.3

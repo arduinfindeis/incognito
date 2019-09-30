@@ -3,6 +3,9 @@ import imp
 import config
 import numpy as np
 
+import tkinter
+from PIL import Image, ImageTk
+
 # testing if run on Raspberry Pi
 try:
     imp.find_module('picamera')
@@ -24,6 +27,14 @@ def feed(capture_x=1680, capture_y=720,
          canvas_x=1680, canvas_y=720,
          fullscreen=False,
          canvas_function=None):
+    
+    if config.classifier == "dnn":
+        net = cv2.dnn.readNetFromCaffe('models/deploy.prototxt.txt',
+                                   'models/res10_300x300_ssd_iter_140000.'
+                                   'caffemodel')
+    else:
+        net=None
+
     if pi_app:
         camera = picamera.PiCamera()
         camera.rotation = 180
@@ -32,7 +43,7 @@ def feed(capture_x=1680, capture_y=720,
         rawCapture = PiRGBArray(camera, size=(capture_x, capture_y))
 
         # Allowing the camera to warmup
-        time.sleep(0.1)
+        time.sleep(10)
 
         # Capturing the videostream
         for img in camera.capture_continuous(rawCapture,
@@ -49,12 +60,15 @@ def feed(capture_x=1680, capture_y=720,
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, capture_x)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, capture_y)
 
+
+
         while(True):
             ret, frame = cap.read()
-            canvas_function(frame, canvas_x, canvas_y, fullscreen)
+            img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            canvas_function(frame, canvas_x, canvas_y, fullscreen, net)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-
         cap.release()
         cv2.destroyAllWindows()
 
